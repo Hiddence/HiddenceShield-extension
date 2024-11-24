@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Hiddence Shield",
+  "description": "Hiddence Shield: a fast, reliable VPN for anonymity, data protection, and unrestricted access. Internet security in one click!",
+  "version": "1.0",
+  "permissions": [
+    "proxy",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://proxy.example.com/*"
+  ],
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "img/icon-16.png",
+      "48": "img/icon-48.png",
+      "128": "img/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "img/icon-16.png",
+    "48": "img/icon-48.png",
+    "128": "img/icon-128.png"
+  }
+}
