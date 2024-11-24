@@ -25,7 +25,7 @@
 ### Clone or Download the Repository
 
 ```bash
-git clone https://github.com/Hiddence/HiddenceVPN-extension.git
+git clone https://github.com/Hiddence/HiddenceShield-extension.git
 ```
 
 ### Open Chrome Extension Management
