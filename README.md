@@ -48,6 +48,7 @@ git clone https://github.com/Hiddence/HiddenceShield-extension.git
 1. **Open the Extension**: Click on the Hiddence Shield icon in your Chrome toolbar.
 2. **Connect to the Proxy**: Click the Connect button to establish a connection to the proxy server. The status indicator will change to show that you are connected.
 3. **Disconnect from the Proxy**: Click the Disconnect button to terminate the connection. The status indicator will revert to show that you are not connected.
+4. **WebRTC Leak Protection**: Click the WebRTC Leak Protection slider to block WebRTC. Slider is automatically set to "enabled", but if you have problems with it, disable it.
 
 ## Configuration
 
@@ -62,28 +63,16 @@ const config = {
   mode: 'fixed_servers',
   rules: {
     singleProxy: {
-      scheme: 'https',
-      host: 'proxy.example.com',
-      port: 443
+      scheme: 'socks5',
+      host: 'proxy.example.net',
+      port: 1080
     },
     bypassList: ['localhost']
   }
 };
 ```
 
-Replace `'proxy.example.com'` and `443` with your proxy server's hostname and port.
-
-### Manifest Settings
-
-Open the `manifest.json` file located in the extension's directory and locate the proxy configuration section:
-
-```json
-"host_permissions": [
-  "https://proxy.example.com/*"
-]
-```
-
-Replace `'https://proxy.example.com/*'` with your proxy server's domain or IP-address.
+Replace `'socks5'`, `'proxy.example.net'` and `1080` with your proxy server's type, hostname and port.
 
 **Important**: For security reasons, it is recommended not to hardcode your credentials directly in the code, especially if you plan to share or publish your version of the extension. See [Security Considerations](#security-considerations) for more details.
 
