@@ -1,8 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Hiddence Shield",
-  "version": "1.0.3",
-  "description": "Hiddence Shield: a fast, reliable VPN for anonymity and data protection.",
+  "name": "__MSG_extensionName__",
+  "version": "1.0.4",
+  "description": "__MSG_extensionDescription__",
+  "author": "Hiddence",
+  "default_locale": "en",
   "icons": {
     "16": "img/icon-16.png",
     "48": "img/icon-48.png",

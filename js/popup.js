@@ -62,10 +62,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     serverPing.classList.add('ping-bad');
                 }
             } else {
-                serverPing.textContent = '120ms';
-                serverPing.style.color = '#FFC107';
-                serverPing.classList.remove('ping-good', 'ping-bad');
-                serverPing.classList.add('ping-medium');
+                serverPing.textContent = '--';
+                serverPing.style.color = '#F44336';
+                serverPing.classList.remove('ping-good', 'ping-medium');
+                serverPing.classList.add('ping-bad');
+                
+                if (response && response.status === 'error') {
+                    setConnectionErrorUI(response.error);
+                    chrome.storage.local.set({ vpnConnected: false });
+                    updateWebRTCPolicy();
+                }
             }
         });
     }
@@ -297,66 +303,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    toggleButton.addEventListener('click', () => {
-        chrome.storage.local.get(['vpnConnected', 'webrtcEnabled'], (result) => {
-            const isConnected = !!result.vpnConnected;
-            const webrtcEnabled = (typeof result.webrtcEnabled === 'boolean')
-                ? result.webrtcEnabled
-                : true;
-
-            if (!isConnected) {
-                setConnectingUI();
-
-                chrome.runtime.sendMessage({ 
-                    action: 'setProxy',
-                    server: 'auto'
-                }, (response) => {
-                    if (response && response.status === 'success') {
-                        chrome.proxy.settings.get({}, (settings) => {
-                            const proxyConfigured = settings && 
-                                                   settings.value && 
-                                                   settings.value.mode === 'fixed_servers';
-                            
-                            if (proxyConfigured) {
-                                chrome.storage.local.set({ 
-                                    vpnConnected: true
-                                }, () => {
-                                    toggleButton.disabled = false;
-                                    updateUI(true, response.server);
-                                    updateWebRTCPolicy();
-                                    if (!document.hidden) {
-                                        setTimeout(updateRealPing, 1000);
-                                    }
-                                });
-                            } else {
-                                chrome.storage.local.set({ vpnConnected: false });
-                                toggleButton.disabled = false;
-                                setConnectionErrorUI("Couldn't configure proxy");
-                            }
-                        });
-                    } else {
-                        toggleButton.disabled = false;
-                        setConnectionErrorUI(response && response.error ? response.error : "Connection failed");
-                    }
-                });
-            } else {
-                toggleButton.textContent = '...';
-                toggleButton.disabled = true;
-                
-                chrome.runtime.sendMessage({ action: 'clearProxy' }, (response) => {
-                    toggleButton.disabled = false;
-                    
-                    if (response && response.status === 'success') {
-                        chrome.storage.local.set({ vpnConnected: false }, () => {
-                            updateUI(false);
-                            updateWebRTCPolicy();
-                        });
-                    } else {
-                        toggleButton.textContent = translations[currentLanguage].disconnect_button;
-                    }
-                });
-            }
-        });
+    toggleButton.addEventListener('click', async () => {
+        const isConnected = document.body.classList.contains('connected');
+        
+        if (isConnected) {
+            chrome.runtime.sendMessage({ action: 'clearProxy' }, (response) => {
+                if (response && response.status === 'success') {
+                    chrome.storage.local.set({ vpnConnected: false }, () => {
+                        updateUI(false);
+                        updateWebRTCPolicy();
+                    });
+                }
+            });
+        } else {
+            setConnectingUI();
+            
+            chrome.runtime.sendMessage({ 
+                action: 'setProxy',
+                server: 'auto'
+            }, (response) => {
+                if (response && response.status === 'success') {
+                    chrome.storage.local.set({ vpnConnected: true }, () => {
+                        updateUI(true, response.server);
+                        updateWebRTCPolicy();
+                    });
+                } else {
+                    const error = response ? response.error : 'Unknown error';
+                    setConnectionErrorUI(error);
+                    chrome.storage.local.set({ vpnConnected: false });
+                    updateWebRTCPolicy();
+                }
+            });
+        }
     });
 
     webrtcSwitch.addEventListener('change', (event) => {

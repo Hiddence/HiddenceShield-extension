@@ -36,18 +36,28 @@ async function measurePing() {
             });
             
             clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             
             const endTime = performance.now();
             const pingTime = Math.round(endTime - startTime);
             
-            return pingTime;
+            return {
+                success: true,
+                ping: pingTime
+            };
         } catch (fetchError) {
             clearTimeout(timeoutId);
             throw fetchError;
         }
     } catch (error) {
         console.warn(`Failed to measure ping:`, error);
-        return 120;
+        return {
+            success: false,
+            error: error.message
+        };
     }
 }
 
@@ -70,26 +80,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         currentServer = message.server || 'auto';
         const proxyCfg = getServerConfig();
         
-        chrome.proxy.settings.set({ value: proxyCfg, scope: 'regular' }, () => {
+        chrome.proxy.settings.set({ value: proxyCfg, scope: 'regular' }, async () => {
             if (chrome.runtime.lastError) {
                 sendResponse({
                     status: 'error',
                     error: chrome.runtime.lastError.message
                 });
-            } else {
-                sendResponse({
-                    status: 'success',
-                    server: servers[currentServer]
-                });
+                return;
+            }
 
-                setTimeout(async () => {
-                    try {
-                        const pingTest = await measurePing();
-                        if (pingTest) {
-                            servers[currentServer].ping = pingTest;
-                        }
-                    } catch (e) { }
-                }, 1000);
+            try {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const result = await measurePing();
+                
+                if (!result.success) {
+                    sendResponse({
+                        status: 'error',
+                        error: result.error || 'Failed to connect to proxy'
+                    });
+                    chrome.proxy.settings.clear({ scope: 'regular' });
+                } else {
+                    servers[currentServer].ping = result.ping;
+                    sendResponse({
+                        status: 'success',
+                        server: servers[currentServer]
+                    });
+                }
+            } catch (e) {
+                sendResponse({
+                    status: 'error',
+                    error: e.message || 'Connection failed'
+                });
+                chrome.proxy.settings.clear({ scope: 'regular' });
             }
         });
         
@@ -104,16 +127,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } 
     
     else if (message.action === 'getPing') {
-        measurePing().then(pingTime => {
-            sendResponse({ 
-                status: 'success', 
-                ping: pingTime || 120,
-                timestamp: Date.now()
-            });
+        measurePing().then(result => {
+            if (result.success) {
+                sendResponse({ 
+                    status: 'success', 
+                    ping: result.ping,
+                    timestamp: Date.now()
+                });
+            } else {
+                sendResponse({ 
+                    status: 'error', 
+                    error: result.error,
+                    timestamp: Date.now()
+                });
+            }
         }).catch(error => {
             sendResponse({ 
                 status: 'error', 
-                ping: 120,
                 error: error.message,
                 timestamp: Date.now()
             });
@@ -146,9 +176,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const serverKey = message.server || currentServer;
         
         if (message.measurePing) {
-            measurePing().then(pingTime => {
-                if (pingTime) {
-                    servers[serverKey].ping = pingTime;
+            measurePing().then(result => {
+                if (result.success) {
+                    servers[serverKey].ping = result.ping;
                 }
                 
                 sendResponse({ 

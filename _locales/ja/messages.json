@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "Hiddence Shield",
+    "description": "拡張機能の名前"
+  },
+  "extensionDescription": {
+    "message": "Hiddence Shield: 匿名性、データ保護、無制限アクセスのための無料の高速で信頼性の高いVPN。",
+    "description": "拡張機能の説明"
+  }
+} 
