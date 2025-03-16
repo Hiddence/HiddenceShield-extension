@@ -2,10 +2,15 @@
 
 **Hiddence Shield** is an open-source Chrome extension that allows users to connect to a proxy server directly from their browser. It provides a simple and intuitive interface to toggle the VPN connection, enhancing privacy and accessibility while browsing the web.
 
+![Hiddence Shield VPN extension](img/screenshot.png)
+
 ## Features
 
 - **One-Click Connection**: Easily connect or disconnect from the proxy server with a single button.
 - **Status Indicator**: Visual feedback on your connection status with animated icons.
+- **Multi-language Support**: Interface available in 13 languages: English, Russian, Spanish, German, Ukrainian, Portuguese, Italian, French, Dutch, Swedish, Arabic, Japanese, and Chinese.
+- **WebRTC Protection**: Built-in protection against WebRTC leaks to maintain your privacy.
+- **Real-time Ping Measurement**: Monitor connection quality with live ping updates.
 - **Lightweight**: Minimal impact on browser performance.
 - **Open-Source**: Transparent codebase for community collaboration and improvement.
 
@@ -14,8 +19,8 @@
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
+- [Language Support](#language-support)
 - [Security Considerations](#security-considerations)
-- [Contributing](#contributing)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
 - [Disclaimer](#disclaimer)
@@ -46,9 +51,11 @@ git clone https://github.com/Hiddence/HiddenceShield-extension.git
 ## Usage
 
 1. **Open the Extension**: Click on the Hiddence Shield icon in your Chrome toolbar.
-2. **Connect to the Proxy**: Click the Connect button to establish a connection to the proxy server. The status indicator will change to show that you are connected.
-3. **Disconnect from the Proxy**: Click the Disconnect button to terminate the connection. The status indicator will revert to show that you are not connected.
-4. **WebRTC Leak Protection**: Click the WebRTC Leak Protection slider to block WebRTC. Slider is automatically set to "enabled", but if you have problems with it, disable it.
+2. **Select Your Language**: Choose your preferred language from the dropdown menu in the top-right corner.
+3. **Connect to the Proxy**: Click the Connect button to establish a connection to the proxy server. The status indicator will change to show that you are connected.
+4. **Disconnect from the Proxy**: Click the Disconnect button to terminate the connection. The status indicator will revert to show that you are not connected.
+5. **WebRTC Leak Protection**: Use the WebRTC Leak Protection slider to block WebRTC. The slider is automatically set to "enabled" by default, but you can disable it if needed.
+6. **Monitor Connection Quality**: When connected, the extension will display the current ping to the proxy server, updating in real-time when the extension window is active.
 
 ## Configuration
 
@@ -56,25 +63,45 @@ Before using the extension, you need to configure it to work with your proxy ser
 
 ### Proxy Settings
 
-Open the `js/popup.js` file located in the extension's directory and locate the proxy configuration section:
+Open the `js/background.js` file located in the extension's directory and locate the proxy configuration section:
 
 ```javascript
-const config = {
-  mode: 'fixed_servers',
-  rules: {
-    singleProxy: {
-      scheme: 'socks5',
-      host: 'proxy.example.net',
-      port: 1080
-    },
-    bypassList: ['localhost']
-  }
+const PROXY_HOST = 'proxy.example.com';
+const PROXY_PORT = 1080;
+const PROXY_SCHEME = 'socks5';
+
+const servers = {
+    auto: { 
+        host: PROXY_HOST, 
+        port: PROXY_PORT,
+        scheme: PROXY_SCHEME
+    }
 };
 ```
 
-Replace `'socks5'`, `'proxy.example.net'` and `1080` with your proxy server's type, hostname and port.
+Replace the proxy configuration with your own settings. Modify `host`, `port`, and other values as needed for your proxy server.
 
-**Important**: For security reasons, it is recommended not to hardcode your credentials directly in the code, especially if you plan to share or publish your version of the extension. See [Security Considerations](#security-considerations) for more details.
+## Language Support
+
+The extension supports the following languages:
+
+- 🇺🇸 English (EN)
+- 🇷🇺 Russian (RU)
+- 🇪🇸 Spanish (ES)
+- 🇩🇪 German (DE)
+- 🇺🇦 Ukrainian (UK)
+- 🇵🇹 Portuguese (PT)
+- 🇮🇹 Italian (IT)
+- 🇫🇷 French (FR)
+- 🇳🇱 Dutch (NL)
+- 🇸🇪 Swedish (SV)
+- 🇦🇪 Arabic (AR)
+- 🇯🇵 Japanese (JA)
+- 🇨🇳 Chinese Simplified (ZH)
+
+The extension will automatically try to detect your browser's language and use it if available. You can also manually select any language from the dropdown menu.
+
+To add more languages, simply extend the `translations` object in the `js/translations.js` file.
 
 ## Security Considerations
 
@@ -102,26 +129,6 @@ If your proxy server uses a self-signed SSL certificate, you may encounter certi
 
 - **Manually Trust the Certificate**: Import the proxy's CA certificate into your system's trusted certificate store. 
   - Note: This approach may not be suitable for all users and can pose security risks if not handled properly.
-
-## Contributing
-
-Contributions are welcome! If you'd like to contribute to this project, please follow these steps:
-
-1. **Fork the Repository**: Click the Fork button at the top right of the repository page.
-2. **Create a Feature Branch**:
-
-    ```bash
-    git checkout -b feature/your-feature-name
-    ```
-
-3. **Commit Your Changes**: Make your changes and commit them with clear and descriptive messages.
-4. **Push to Your Fork**:
-
-    ```bash
-    git push origin feature/your-feature-name
-    ```
-
-5. **Submit a Pull Request**: Open a pull request to the main repository's `develop` branch.
 
 ## License
 
