@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Hiddence Shield",
-  "version": "1.0.2",
-  "description": "Hiddence Shield: a fast, reliable VPN for anonymity, data protection, and unrestricted access. Internet security in one click!",
+  "version": "1.0.3",
+  "description": "Hiddence Shield: a fast, reliable VPN for anonymity and data protection.",
   "icons": {
     "16": "img/icon-16.png",
     "48": "img/icon-48.png",
@@ -11,7 +11,11 @@
   "permissions": [
     "proxy",
     "storage",
-    "privacy"
+    "privacy",
+	  "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "https://www.cloudflare.com/*"
   ],
   "background": {
     "service_worker": "js/background.js"
@@ -23,5 +27,12 @@
       "48": "img/icon-48.png",
       "128": "img/icon-128.png"
     }
+  },
+  "declarative_net_request": {
+    "rule_resources": [{
+      "id": "ruleset_1",
+      "enabled": true,
+      "path": "rules.json"
+    }]
   }
 }
