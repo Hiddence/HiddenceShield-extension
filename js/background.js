@@ -1,6 +1,6 @@
-const PROXY_HOST = 'proxy.example.com';
-const PROXY_PORT = 1080;
-const PROXY_SCHEME = 'socks5';
+const PROXY_HOST = 'proxy.hiddence.net';
+const PROXY_PORT = 449;
+const PROXY_SCHEME = 'socks';
 
 const servers = {
     auto: { 
@@ -12,6 +12,9 @@ const servers = {
 };
 
 let currentServer = 'auto';
+let connectionMonitorInterval = null;
+let lastSuccessfulPing = 0;
+const CONNECTION_TIMEOUT = 30000;
 
 async function measurePing() {
     try {
@@ -43,6 +46,8 @@ async function measurePing() {
             
             const endTime = performance.now();
             const pingTime = Math.round(endTime - startTime);
+
+            lastSuccessfulPing = Date.now();
             
             return {
                 success: true,
@@ -63,35 +68,91 @@ async function measurePing() {
 
 function getServerConfig() {
     return {
-        mode: 'fixed_servers',
-        rules: {
-            singleProxy: {
-                scheme: PROXY_SCHEME,
-                host: PROXY_HOST,
-                port: PROXY_PORT
-            },
-            bypassList: ['localhost', '127.0.0.1']
-        }
+        host: PROXY_HOST,
+        port: PROXY_PORT,
+        type: PROXY_SCHEME,
+        proxyDNS: true
     };
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+let isProxyActive = false;
+
+function handleProxyRequest(requestInfo) {
+    if (!isProxyActive) {
+        return { type: "direct" };
+    }
+    
+    return getServerConfig();
+}
+
+function ensureProxyConnection() {
+    if (!isProxyActive) return;
+    
+    if (lastSuccessfulPing > 0 && (Date.now() - lastSuccessfulPing) > CONNECTION_TIMEOUT) {
+        console.log("Connection appears to be lost. Reconnecting...");
+        
+        try {
+            browser.proxy.onRequest.removeListener(handleProxyRequest);
+        } catch (e) {
+            console.warn("Error removing proxy listener:", e);
+        }
+
+        try {
+            browser.proxy.onRequest.addListener(handleProxyRequest, { urls: ["<all_urls>"] });
+            isProxyActive = true;
+        } catch (e) {
+            console.error("Failed to reconnect proxy:", e);
+            isProxyActive = false;
+            
+            browser.runtime.sendMessage({
+                action: 'connectionStatus',
+                status: 'error',
+                error: 'Connection lost'
+            }).catch(() => { });
+
+            browser.storage.local.set({ vpnConnected: false });
+
+            stopConnectionMonitor();
+        }
+    }
+
+    measurePing().catch(error => {
+        console.warn("Ping measurement failed during connection check:", error);
+    });
+}
+
+function startConnectionMonitor() {
+    stopConnectionMonitor();
+
+    lastSuccessfulPing = Date.now();
+
+    connectionMonitorInterval = setInterval(ensureProxyConnection, 10000);
+}
+
+function stopConnectionMonitor() {
+    if (connectionMonitorInterval) {
+        clearInterval(connectionMonitorInterval);
+        connectionMonitorInterval = null;
+    }
+}
+
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'setProxy') {
         currentServer = message.server || 'auto';
-        const proxyCfg = getServerConfig();
-        
-        chrome.proxy.settings.set({ value: proxyCfg, scope: 'regular' }, async () => {
-            if (chrome.runtime.lastError) {
-                sendResponse({
-                    status: 'error',
-                    error: chrome.runtime.lastError.message
-                });
-                return;
-            }
 
+        try {
+            browser.proxy.onRequest.removeListener(handleProxyRequest);
+        } catch (e) {
+            console.warn("Error removing existing proxy listener:", e);
+        }
+
+        browser.proxy.onRequest.addListener(handleProxyRequest, { urls: ["<all_urls>"] });
+        isProxyActive = true;
+
+        startConnectionMonitor();
+        
+        setTimeout(async () => {
             try {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
                 const result = await measurePing();
                 
                 if (!result.success) {
@@ -99,7 +160,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         status: 'error',
                         error: result.error || 'Failed to connect to proxy'
                     });
-                    chrome.proxy.settings.clear({ scope: 'regular' });
+                    browser.proxy.onRequest.removeListener(handleProxyRequest);
+                    isProxyActive = false;
+                    stopConnectionMonitor();
                 } else {
                     servers[currentServer].ping = result.ping;
                     sendResponse({
@@ -112,17 +175,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     status: 'error',
                     error: e.message || 'Connection failed'
                 });
-                chrome.proxy.settings.clear({ scope: 'regular' });
+                browser.proxy.onRequest.removeListener(handleProxyRequest);
+                isProxyActive = false;
+                stopConnectionMonitor();
             }
-        });
+        }, 500);
         
         return true;
     } 
     
     else if (message.action === 'clearProxy') {
-        chrome.proxy.settings.clear({ scope: 'regular' }, () => {
-            sendResponse({ status: 'success' });
-        });
+        browser.proxy.onRequest.removeListener(handleProxyRequest);
+        isProxyActive = false;
+        stopConnectionMonitor();
+        sendResponse({ status: 'success' });
         return true;
     } 
     
@@ -153,16 +219,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     else if (message.action === 'toggleWebRTC') {
-        if (chrome.privacy && chrome.privacy.network && chrome.privacy.network.webRTCIPHandlingPolicy) {
+        if (browser.privacy && browser.privacy.network && browser.privacy.network.webRTCIPHandlingPolicy) {
             if (message.disableLeak) {
-                chrome.privacy.network.webRTCIPHandlingPolicy.set(
+                browser.privacy.network.webRTCIPHandlingPolicy.set(
                     { value: 'disable_non_proxied_udp' },
                     () => {
                         sendResponse({ status: 'success', policy: 'disable_non_proxied_udp' });
                     }
                 );
             } else {
-                chrome.privacy.network.webRTCIPHandlingPolicy.clear({}, () => {
+                browser.privacy.network.webRTCIPHandlingPolicy.clear({}, () => {
                     sendResponse({ status: 'success', policy: 'default' });
                 });
             }
@@ -206,18 +272,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
-chrome.storage.local.get(['vpnConnected', 'webrtcEnabled'], (result) => {
+browser.storage.local.get(['vpnConnected', 'webrtcEnabled'], (result) => {
     if (result.vpnConnected) {
-        const proxyCfg = getServerConfig();
+        try {
+            browser.proxy.onRequest.removeListener(handleProxyRequest);
+        } catch (e) {
+            console.warn("Error removing existing proxy listener:", e);
+        }
         
-        chrome.proxy.settings.set({ value: proxyCfg, scope: 'regular' }, () => {
-            if (chrome.runtime.lastError) {
-                chrome.storage.local.set({ vpnConnected: false });
-            } else {
-                if (result.webrtcEnabled && chrome.privacy?.network?.webRTCIPHandlingPolicy) {
-                    chrome.privacy.network.webRTCIPHandlingPolicy.set({ value: 'disable_non_proxied_udp' });
-                }
-            }
-        });
+        browser.proxy.onRequest.addListener(handleProxyRequest, { urls: ["<all_urls>"] });
+        isProxyActive = true;
+
+        startConnectionMonitor();
+        
+        if (result.webrtcEnabled && browser.privacy?.network?.webRTCIPHandlingPolicy) {
+            browser.privacy.network.webRTCIPHandlingPolicy.set({ value: 'disable_non_proxied_udp' });
+        }
     }
 });

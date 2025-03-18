@@ -1,17 +1,3 @@
-function ensureCorrectProxy() {
-    chrome.proxy.settings.get({}, (settings) => {
-        if (settings && settings.value && 
-            settings.value.mode === 'fixed_servers' && 
-            settings.value.rules && 
-            settings.value.rules.singleProxy) {
-            
-            const proxy = settings.value.rules.singleProxy;
-        }
-    });
-}
-
-ensureCorrectProxy();
-
 document.addEventListener('DOMContentLoaded', () => {
     const toggleButton = document.getElementById('toggle-connection');
     const statusText = document.getElementById('status-text');
@@ -37,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        chrome.runtime.sendMessage({ 
+        browser.runtime.sendMessage({ 
             action: 'getPing',
             _nocache: Date.now()
         }, function(response) {
@@ -69,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (response && response.status === 'error') {
                     setConnectionErrorUI(response.error);
-                    chrome.storage.local.set({ vpnConnected: false });
+                    browser.storage.local.set({ vpnConnected: false });
                     updateWebRTCPolicy();
                 }
             }
@@ -107,23 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
 
-        try {
-            const proxySettings = await new Promise((resolve) => {
-                chrome.proxy.settings.get({}, (settings) => {
-                    resolve(settings);
-                });
-            });
-
-            if (proxySettings && proxySettings.value && 
-                proxySettings.value.mode === 'fixed_servers' && 
-                proxySettings.value.rules && 
-                proxySettings.value.rules.singleProxy) {
-
-                return true;
-            }
-        } catch (error) { }
-        
-        return false;
+        return true;
     }
 
     function updateUI(isConnected, serverInfo = null) {
@@ -232,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setWebRTCPolicy(disable) {
-        chrome.runtime.sendMessage({
+        browser.runtime.sendMessage({
             action: 'toggleWebRTC',
             disableLeak: disable
         }, (response) => {
@@ -241,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateWebRTCPolicy() {
-        chrome.storage.local.get(['vpnConnected', 'webrtcEnabled'], (result) => {
+        browser.storage.local.get(['vpnConnected', 'webrtcEnabled'], (result) => {
             const vpnConnected = !!result.vpnConnected;
             const webrtcEnabled = (typeof result.webrtcEnabled === 'boolean')
                 ? result.webrtcEnabled
@@ -255,92 +225,107 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    chrome.storage.local.get([
-        'vpnConnected', 
-        'webrtcEnabled'
-    ], (result) => {
+    browser.storage.local.get(['vpnConnected', 'webrtcEnabled'], (result) => {
         const isConnected = !!result.vpnConnected;
-
-        let webrtcEnabled = (typeof result.webrtcEnabled === 'boolean')
-            ? result.webrtcEnabled
-            : true;
-        webrtcSwitch.checked = webrtcEnabled;
-
-        if (isConnected) {
-            chrome.proxy.settings.get({}, (settings) => {
-                const proxyConfigured = settings && 
-                                       settings.value && 
-                                       settings.value.mode === 'fixed_servers';
-                
-                if (proxyConfigured) {
-                    chrome.runtime.sendMessage({
-                        action: 'getServerInfo',
-                        measurePing: !document.hidden
-                    }, (response) => {
-                        if (response && response.status === 'success') {
-                            updateUI(true, response.server);
-                            if (!document.hidden) {
-                                setTimeout(updateRealPing, 500);
-                            }
-                        } else {
-                            updateUI(true);
-                        }
-                    });
-                } else {
-                    chrome.storage.local.set({ vpnConnected: false }, () => {
-                        updateUI(false);
-                    });
-                }
-            });
-        } else {
-            updateUI(false);
-        }
-
-        chrome.storage.local.set({
-            webrtcEnabled
-        }, () => {
-            updateWebRTCPolicy();
-        });
-    });
-
-    toggleButton.addEventListener('click', async () => {
-        const isConnected = document.body.classList.contains('connected');
+        
+        updateUI(isConnected);
         
         if (isConnected) {
-            chrome.runtime.sendMessage({ action: 'clearProxy' }, (response) => {
+            browser.runtime.sendMessage({
+                action: 'getServerInfo',
+                server: null,
+                measurePing: true
+            }, (response) => {
+                if (response && response.status === 'success' && response.server) {
+                    updateUI(true, response.server);
+                } else {
+                    updateUI(false);
+                    browser.storage.local.set({ vpnConnected: false });
+                }
+            });
+        }
+        
+        if (typeof result.webrtcEnabled === 'boolean') {
+            webrtcSwitch.checked = result.webrtcEnabled;
+        } else {
+            webrtcSwitch.checked = true;
+            browser.storage.local.set({ webrtcEnabled: true });
+        }
+    });
+
+    toggleButton.addEventListener('click', () => {
+        if (document.body.classList.contains('connected')) {
+            browser.runtime.sendMessage({
+                action: 'clearProxy'
+            }, (response) => {
                 if (response && response.status === 'success') {
-                    chrome.storage.local.set({ vpnConnected: false }, () => {
-                        updateUI(false);
-                        updateWebRTCPolicy();
-                    });
+                    browser.storage.local.set({ vpnConnected: false });
+                    updateUI(false);
+                    updateWebRTCPolicy();
                 }
             });
         } else {
             setConnectingUI();
-            
-            chrome.runtime.sendMessage({ 
+
+            browser.runtime.sendMessage({
                 action: 'setProxy',
-                server: 'auto'
+                server: null
             }, (response) => {
                 if (response && response.status === 'success') {
-                    chrome.storage.local.set({ vpnConnected: true }, () => {
-                        updateUI(true, response.server);
-                        updateWebRTCPolicy();
-                    });
+                    browser.storage.local.set({ vpnConnected: true });
+                    updateUI(true, response.server);
+                    updateWebRTCPolicy();
                 } else {
-                    const error = response ? response.error : 'Unknown error';
-                    setConnectionErrorUI(error);
-                    chrome.storage.local.set({ vpnConnected: false });
+                    browser.storage.local.set({ vpnConnected: false });
+                    setConnectionErrorUI(response?.error || 'Unknown error');
                     updateWebRTCPolicy();
                 }
             });
         }
     });
 
-    webrtcSwitch.addEventListener('change', (event) => {
-        const userChoice = event.target.checked;
-        chrome.storage.local.set({ webrtcEnabled: userChoice }, () => {
-            updateWebRTCPolicy();
-        });
+    webrtcSwitch.addEventListener('change', () => {
+        const isChecked = webrtcSwitch.checked;
+        browser.storage.local.set({ webrtcEnabled: isChecked });
+        updateWebRTCPolicy();
+    });
+
+    const languageSelect = document.getElementById('language-select');
+    
+    browser.storage.local.get(['language'], (data) => {
+        if (data.language) {
+            currentLanguage = data.language;
+            languageSelect.value = currentLanguage;
+        } else {
+            currentLanguage = navigator.language.split('-')[0];
+            
+            if (!translations[currentLanguage]) {
+                currentLanguage = 'en';
+            }
+            
+            languageSelect.value = currentLanguage;
+            browser.storage.local.set({ language: currentLanguage });
+        }
+        
+        updateTranslations();
+    });
+    
+    function updateTranslations() {
+        document.getElementById('status-text').textContent = document.body.classList.contains('connected')
+            ? translations[currentLanguage].status_connected
+            : translations[currentLanguage].status_not_connected;
+            
+        document.getElementById('toggle-connection').textContent = document.body.classList.contains('connected')
+            ? translations[currentLanguage].disconnect_button
+            : translations[currentLanguage].connect_button;
+            
+        document.getElementById('advanced-heading').textContent = translations[currentLanguage].advanced_settings;
+        document.getElementById('webrtc-label').textContent = translations[currentLanguage].webrtc_protection;
+    }
+    
+    languageSelect.addEventListener('change', (e) => {
+        currentLanguage = e.target.value;
+        browser.storage.local.set({ language: currentLanguage });
+        updateTranslations();
     });
 });

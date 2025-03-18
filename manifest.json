@@ -14,13 +14,13 @@
     "proxy",
     "storage",
     "privacy",
-	  "declarativeNetRequest"
+    "declarativeNetRequest"
   ],
   "host_permissions": [
-    "https://www.cloudflare.com/*"
+    "<all_urls>"
   ],
   "background": {
-    "service_worker": "js/background.js"
+    "scripts": ["js/background.js"]
   },
   "action": {
     "default_popup": "popup.html",
@@ -36,5 +36,11 @@
       "enabled": true,
       "path": "rules.json"
     }]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "admin@hiddence.net",
+      "strict_min_version": "113.0"
+    }
   }
 }

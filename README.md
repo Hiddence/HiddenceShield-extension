@@ -1,6 +1,6 @@
-# Hiddence Shield Chrome Extension
+# Hiddence Shield Firefox Extension
 
-**Hiddence Shield** is an open-source Chrome extension that allows users to connect to a proxy server directly from their browser. It provides a simple and intuitive interface to toggle the VPN connection, enhancing privacy and accessibility while browsing the web.
+**Hiddence Shield** is an open-source Firefox extension that allows users to connect to a proxy server directly from their browser. It provides a simple and intuitive interface to toggle the VPN connection, enhancing privacy and accessibility while browsing the web.
 
 ![Hiddence Shield VPN extension](img/screenshot.png)
 
@@ -33,24 +33,27 @@
 git clone https://github.com/Hiddence/HiddenceShield-extension.git
 ```
 
-### Open Chrome Extension Management
+### Install as a Temporary Add-on in Firefox
 
-1. Navigate to `chrome://extensions/` in your Chrome browser.
-2. Enable Developer mode by toggling the switch in the upper-right corner.
+1. Navigate to `about:debugging` in your Firefox browser.
+2. Click on "This Firefox" in the left sidebar.
+3. Click on "Load Temporary Add-on".
+4. Browse to the location where you cloned or downloaded the repository and select the `manifest.json` file.
 
-### Load the Unpacked Extension
+### Alternative: Install from Firefox Add-ons
 
-1. Click on **Load unpacked**.
-2. Select the directory where you cloned or downloaded the repository.
+1. Visit [Firefox Add-ons](https://addons.mozilla.org/) and search for "Hiddence Shield".
+2. Click "Add to Firefox" to install the extension.
+3. Follow the prompts to complete the installation.
 
 ### Verify Installation
 
-- The extension should now appear in your list of installed extensions.
-- You can pin it to your toolbar for easy access.
+- The extension should now appear in your list of installed add-ons.
+- You can pin it to your toolbar for easy access by right-clicking on the icon and selecting "Pin to Toolbar".
 
 ## Usage
 
-1. **Open the Extension**: Click on the Hiddence Shield icon in your Chrome toolbar.
+1. **Open the Extension**: Click on the Hiddence Shield icon in your Firefox toolbar.
 2. **Select Your Language**: Choose your preferred language from the dropdown menu in the top-right corner.
 3. **Connect to the Proxy**: Click the Connect button to establish a connection to the proxy server. The status indicator will change to show that you are connected.
 4. **Disconnect from the Proxy**: Click the Disconnect button to terminate the connection. The status indicator will revert to show that you are not connected.
@@ -114,20 +117,17 @@ Hardcoding sensitive information like usernames and passwords directly into the 
 
 #### Recommended Solutions:
 
-- **Use Environment Variables**: Store your credentials in environment variables and access them securely within the extension.
-  - Note: Chrome extensions have limited access to environment variables, so this may require additional configuration.
-
-- **Prompt for Credentials**: Modify the extension to prompt you for your credentials when connecting. Store them securely using `chrome.storage.local` with appropriate encryption.
+- **Prompt for Credentials**: Modify the extension to prompt you for your credentials when connecting. Store them securely using `browser.storage.local` with appropriate encryption.
 
 - **External Configuration File**: Store credentials in a separate, non-tracked configuration file. Ensure this file is listed in `.gitignore` to prevent it from being committed to version control.
 
 ### Secure Proxy Certificate
 
-If your proxy server uses a self-signed SSL certificate, you may encounter certificate errors in Chrome. To resolve this:
+If your proxy server uses a self-signed SSL certificate, you may encounter certificate errors in Firefox. To resolve this:
 
-- **Use a Trusted Certificate Authority (CA) Certificate**: Obtain an SSL certificate from a trusted CA for your proxy server domain. This ensures Chrome will trust the proxy's SSL certificate without additional configuration.
+- **Use a Trusted Certificate Authority (CA) Certificate**: Obtain an SSL certificate from a trusted CA for your proxy server domain. This ensures Firefox will trust the proxy's SSL certificate without additional configuration.
 
-- **Manually Trust the Certificate**: Import the proxy's CA certificate into your system's trusted certificate store. 
+- **Manually Trust the Certificate**: Import the proxy's CA certificate into your system's trusted certificate store or Firefox's certificate store.
   - Note: This approach may not be suitable for all users and can pose security risks if not handled properly.
 
 ## License
@@ -140,8 +140,8 @@ This project is licensed under the MIT License. You are free to use, modify, and
 
 ## Inspiration
 
-This project was inspired by the need for a simple and effective way to manage proxy connections directly within the Chrome browser.
+This project was inspired by the need for a simple and effective way to manage proxy connections directly within the Firefox browser.
 
 ## Disclaimer
 
-Usage of this extension is at your own risk. The author is not responsible for any misuse or damage caused by this extension. Ensure you comply with all applicable laws and terms of service when using proxy servers and VPNs.
+Usage of this extension is at your own risk. The author is not responsible for any misuse or damage caused by this extension. Ensure you comply with all applicable laws and terms of service when using proxy servers and VPNs. 

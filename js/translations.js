@@ -189,7 +189,7 @@ function setLanguage(lang) {
     if (translations[lang]) {
         currentLanguage = lang;
         updateUITranslations();
-        chrome.storage.local.set({ language: lang });
+        browser.storage.local.set({ language: lang });
     }
 }
 
@@ -217,7 +217,7 @@ function updateUITranslations() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    chrome.storage.local.get(['language'], (result) => {
+    browser.storage.local.get(['language'], (result) => {
         if (result.language && translations[result.language]) {
             currentLanguage = result.language;
         } else {
